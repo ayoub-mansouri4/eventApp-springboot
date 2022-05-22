@@ -1,6 +1,9 @@
 package springboot_auth.controllers;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +23,9 @@ import java.util.List;
 @RequestMapping("/event")
 @CrossOrigin(origins = "http://localhost:4200/")
 public class EventController {
+
+    private Logger log =  LoggerFactory.getLogger(EventController.class);
+
 
     @Autowired
     private EventService eventService;
@@ -42,9 +48,11 @@ public class EventController {
             event.setUser(EventOwner);
             eventService.saveEvent(event);
             //participantService.saveParticipant(new Participant(eventDetails.getParticipant().getId_participant(),event));
+            log.info("event is created successfully");
             return new ResponseEntity<EventDetails>(eventDetails, HttpStatus.OK);
         }catch (Exception  e){
             e.printStackTrace();
+            log.error("event creation error");
         }
 
         return  new ResponseEntity<EventDetails>(eventDetails, HttpStatus.NOT_ACCEPTABLE);
@@ -53,6 +61,10 @@ public class EventController {
     @GetMapping("/allEvents/{id}")
     public  ResponseEntity<List<EventDetails>> getAllEvents(@PathVariable("id") Long id){
         List<Event> events=events = eventService.getAllEvents();
+        //log
+
+        if(events.equals(null)) log.error("all events are not found");
+
         List<EventDetails> eventList=new ArrayList<>();
         //List<Participant> participants=participantRepository.findParticipantsByEvent(eventService.getEvent(id_event));
 
@@ -73,12 +85,16 @@ public class EventController {
 
             eventList.add(eventsDetails);
         }
+        log.info("allEvent list is created");
         return new  ResponseEntity<List<EventDetails>>(eventList,HttpStatus.OK);
     }
 
     @PostMapping("/myevents")
     public  ResponseEntity<List<EventDetails>> getEventsOfUser(@RequestBody User user){
                 List<Event> events=userService.getUser(user.getId()).getEvents();
+
+                if(events.equals(null)) log.error("my events are not found");
+
                 List<EventDetails> eventList=new ArrayList<>();
                 for(Event ev: events){
                     Event event=new Event(ev.getDate_event(),ev.getTime_event(),ev.getNumber_participants(),ev.getSport());
@@ -88,7 +104,9 @@ public class EventController {
                     EventDetails eventsDetails=new EventDetails(event,ev.getPost(),ev.getLocation(),eventOwner,ev.getParticipants());
                     eventList.add(eventsDetails);
                 }
-           return new  ResponseEntity<List<EventDetails>>(eventList,HttpStatus.OK);
+        log.info("myEvent list is created");
+
+        return new  ResponseEntity<List<EventDetails>>(eventList,HttpStatus.OK);
     }
     @DeleteMapping("/deleteEvent/{id}")
     public void deleteEvent(@PathVariable("id") Long id){
@@ -98,14 +116,19 @@ public class EventController {
     public void participateInEvent(@RequestBody ObjectNode objectNode){
         Long id_user= objectNode.get("id_user").asLong();
         Long id_event= objectNode.get("id_event").asLong();
-        participantService.saveParticipant(new Participant(id_user,eventService.getEvent(id_event)));
-
+        if(participantService.saveParticipant(new Participant(id_user,eventService.getEvent(id_event))).equals(null)){
+            log.error("participation error");
+        }
+        log.info("participation is successful ");
     }
     
 
     @GetMapping("/allEvents/{id}/{sport}")
     public  ResponseEntity<List<EventDetails>> getEventsBySport(@PathVariable("id") Long id,@PathVariable("sport") String sport){
         List<Event> events=events = eventService.getEventsBySport(sport);
+
+        if(events.equals(null)) log.error("eventsBySport are not found");
+
         List<EventDetails> eventList=new ArrayList<>();
         //List<Participant> participants=participantRepository.findParticipantsByEvent(eventService.getEvent(id_event));
 
@@ -126,6 +149,7 @@ public class EventController {
 
             eventList.add(eventsDetails);
         }
+        log.info("eventsBySport list is created");
         return new  ResponseEntity<List<EventDetails>>(eventList,HttpStatus.OK);
     }
 
@@ -133,6 +157,9 @@ public class EventController {
     @GetMapping("/getEventsP/{id}")
     public  ResponseEntity<List<EventDetails>> getEventsP(@PathVariable("id") Long id){
         List<Event> events=events = eventService.getAllEvents();
+
+        if(events.equals(null)) log.error("EventsByParticipant are not found");
+
         List<EventDetails> eventList=new ArrayList<>();
         //List<Participant> participants=participantRepository.findParticipantsByEvent(eventService.getEvent(id_event));
         for(Event ev: events){
@@ -149,6 +176,7 @@ public class EventController {
             }
 
         }
+        log.info("EventsByParticipant list is created");
         return new  ResponseEntity<List<EventDetails>>(eventList,HttpStatus.OK);
     }
 
